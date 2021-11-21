@@ -1,5 +1,8 @@
 package example.jbot.slack;
 
+import jxl.Cell;
+import jxl.Sheet;
+import jxl.Workbook;
 import me.ramswaroop.jbot.core.common.Controller;
 import me.ramswaroop.jbot.core.common.EventType;
 import me.ramswaroop.jbot.core.common.JBot;
@@ -11,7 +14,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Scanner;
 import java.util.regex.Matcher;
+
+
 
 /**
  * A simple Slack Bot. You can create multiple bots by just
@@ -144,6 +152,71 @@ public class SlackBot extends Bot {
             reply(session, event, "No problem. You can always schedule one with 'setup meeting' command.");
             stopConversation(event);    // stop conversation only if user says no
         }
+    }
+
+    public void postFileToSlack(WebSocketSession session, Event event) throws IOException {
+        System.out.println("Enter the location of your file");
+        Scanner in = new Scanner(System.in);
+        String input=in.nextLine();
+        File file = new File(input);
+        okhttp3.Response response = new Meteoroid.Builder()
+            .token(slackToken)
+            .channels(event.getChannelId())
+            .uploadFile(file)
+            .build()
+            .post();
+        reply(session, event, "file received!");
+        response.close();
+    }
+
+  public void postExcelToSlack(WebSocketSession session, Event event) throws IOException {
+        System.out.println("Enter the location of the excel file");
+        Scanner in = new Scanner(System.in);
+        String input=in.nextLine();
+        File file = new File(input);
+        okhttp3.Response response = new Meteoroid.Builder()
+            .token(slackToken)
+            .channels(event.getChannelId())
+            .uploadFile(file)
+            .build()
+            .post();
+        //startConversation(event, "confirmPosition");   // start conversation
+        reply(session, event, "excel file received!");
+        String result;
+        if(event.getText().contains(",")){
+            String x="";
+            String y="";
+            int i;
+            int flagg=0;
+            for(i=0; i<event.getText().length(); i++)
+            {
+                if(event.getText().charAt(i)>='0' && event.getText().charAt(i)<='9' && flagg==0)
+                {
+                    x+=event.getText().charAt(i);
+                }
+                else if(event.getText().charAt(i)==',')
+                    flagg++;
+                else if(event.getText().charAt(i)>='0' && event.getText().charAt(i)<='9' && flagg==1)
+                {
+                    y+=event.getText().charAt(i);
+                }
+            }
+            reply(session, event, x + "," + y);
+            try
+            {
+                Workbook book=Workbook.getWorkbook(new File(input));
+                Sheet sheet=book.getSheet(0);
+                Cell cell1=sheet.getCell(Integer.parseInt(y),Integer.parseInt(x));
+                result=cell1.getContents();
+                book.close();
+            }catch(Exception e)
+            {
+                System.out.println(e);
+                result="none";
+            }
+            reply(session, event, "the element in the " + x + "line " + y + "column is: "+result);
+        }
+        response.close();
     }
 
     /**
