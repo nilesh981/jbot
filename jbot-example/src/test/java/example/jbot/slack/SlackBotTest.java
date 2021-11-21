@@ -3,6 +3,7 @@ package example.jbot.slack;
 
 import me.ramswaroop.jbot.core.common.Controller;
 import me.ramswaroop.jbot.core.common.EventType;
+import me.ramswaroop.jbot.core.facebook.models.Callback;
 import me.ramswaroop.jbot.core.slack.Bot;
 import me.ramswaroop.jbot.core.slack.SlackService;
 import me.ramswaroop.jbot.core.slack.models.Event;
@@ -35,7 +36,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @ActiveProfiles("slack")
 @RunWith(MockitoJUnitRunner.class)
-public class SlackBotTest {
+public class SlackBotTest extends SlackBot{
 
     @Mock
     private WebSocketSession session;
@@ -117,6 +118,7 @@ public class SlackBotTest {
         bot.handleTextMessage(session, textMessage);
         assertThat(capture.toString(), containsString("hey case insensitive"));
     }
+
 
     @Test
     public void When_DirectMessage_Then_InvokeOnPinAdded() {
@@ -231,11 +233,82 @@ public class SlackBotTest {
         assertThat(capture.toString(), containsString("You can always schedule one with 'setup meeting' command"));
     }
 
+    /**
+     * This test will allow the user to specify location of excel which will be shared by bot and read the data from excel.
+     * The user will provide location for test.xls and read the 2nd row and 1st column of excel data.
+     * This test will compare whether the data is the same between the two.
+     *
+     * @param session
+     * @param event
+     */
+    @Test
+    @Controller(events = { EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE })
+    public void When_ExcelShared_Slack(WebSocketSession session, Event event)
+    {
+        if (event.getText().contains("file")) {
+            try {
+                postExcelToSlack(session,event);
+                TextMessage text= new TextMessage("{\"type\": \"message\"," +
+                    "\"ts\": \"1368878749.000602\"," +
+                    "\"channel\": \"A1E78BACV\"," +
+                    "\"user\": \"U023BECGF\"," +
+                    "\"text\": \"C:\\test.xls\"}");
+                bot.handleTextMessage(session, text);
+                assertThat(capture.toString(),containsString("Excel File Shared."));
+                TextMessage text1= new TextMessage("{\"type\": \"message\"," +
+                    "\"ts\": \"1368878749.000602\"," +
+                    "\"channel\": \"A1E78BACV\"," +
+                    "\"user\": \"U023BECGF\"," +
+                    "\"text\": \"Excel 2,1\"}");
+                bot.handleTextMessage(session, text1);
+                assertThat(capture.toString(),containsString("300"));
+            } catch (Exception e) {
+                ;
+            }
+        } else {
+            reply(session, event, "Hi, I am " + slackService.getCurrentUser().getName());
+        }
+    }
+
+    /**
+     * This test will allow the user to specify location of file which will be shared by bot.
+     * The user will provide location for test.pdf and once the file is located, it will be shared by the bot.
+     * The test will verify whether the file has been shared using the onFileShared controller.
+     *
+     * @param session
+     * @param event
+     */
+
+    @Test
+    @Controller(events = { EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE })
+    public void When_FileShared_Slack(WebSocketSession session, Event event)
+    {
+        if (event.getText().contains("file")) {
+            try {
+                postFileToSlack(session,event);
+                TextMessage text= new TextMessage("{\"type\": \"message\"," +
+                    "\"ts\": \"1368878749.000602\"," +
+                    "\"channel\": \"A1E78BACV\"," +
+                    "\"user\": \"U023BECGF\"," +
+                    "\"text\": \"C:\\test.pdf\"}");
+                bot.handleTextMessage(session, text);
+                assertThat(capture.toString(),containsString("File Shared."));
+            } catch (Exception e) {
+                ;
+            }
+        } else {
+            reply(session, event, "Hi, I am " + slackService.getCurrentUser().getName());
+        }
+    }
+
+
 
     /**
      * Slack Bot for unit tests.
      */
-    public static class TestBot extends Bot {
+    public static class TestBot extends SlackBot {
+
+        private Callback capture;
 
         @Override
         public String getSlackToken() {
@@ -327,5 +400,8 @@ public class SlackBotTest {
             }
             stopConversation(event);    // stop conversation
         }
+
+
+
     }
 }

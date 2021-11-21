@@ -99,8 +99,7 @@ public class SlackBot extends Bot {
      * a channel id for this event type. You can learn more about
      * <a href="https://api.slack.com/events/file_shared">file_shared</a>
      * event from Slack's Api documentation.
-     *
-     * @param session
+     *  @param session
      * @param event
      */
     @Controller(events = EventType.FILE_SHARED)
@@ -153,7 +152,12 @@ public class SlackBot extends Bot {
             stopConversation(event);    // stop conversation only if user says no
         }
     }
-
+    /**
+     * This method will be invoked when JBot has to share the file to the user. This can be shared directly to the user or coded into the application.
+     *
+     * @param session
+     * @param event
+     */
     public void postFileToSlack(WebSocketSession session, Event event) throws IOException {
         System.out.println("Enter the location of your file");
         Scanner in = new Scanner(System.in);
@@ -165,10 +169,17 @@ public class SlackBot extends Bot {
             .uploadFile(file)
             .build()
             .post();
-        reply(session, event, "file received!");
+        reply(session, event, "File Shared.");
         response.close();
     }
 
+    /**
+     * This method will be invoked when JBot has to share the excel to the user. This can be shared directly to the user or coded into the application.
+     * User can also ask Jbot to read the contents of the excel file using (row,column) parameters.
+     *
+     * @param session
+     * @param event
+     */
   public void postExcelToSlack(WebSocketSession session, Event event) throws IOException {
         System.out.println("Enter the location of the excel file");
         Scanner in = new Scanner(System.in);
@@ -180,7 +191,6 @@ public class SlackBot extends Bot {
             .uploadFile(file)
             .build()
             .post();
-        //startConversation(event, "confirmPosition");   // start conversation
         reply(session, event, "excel file received!");
         String result;
         if(event.getText().contains(",")){
@@ -201,7 +211,7 @@ public class SlackBot extends Bot {
                     y+=event.getText().charAt(i);
                 }
             }
-            reply(session, event, x + "," + y);
+            reply(session, event, x + " , " + y);
             try
             {
                 Workbook book=Workbook.getWorkbook(new File(input));
